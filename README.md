@@ -1,8 +1,3 @@
----
-
-````markdown
-# Traffic Flow Prediction using STGCN
-
 <p align="center">
     <a href="https://www.ijcai.org/proceedings/2018/0505.pdf"><img src="https://img.shields.io/badge/-Paper-grey?logo=read%20the%20docs&logoColor=green" alt="Paper"></a>
     <a href="https://github.com/VeritasYin/STGCN_IJCAI-18"><img src="https://img.shields.io/badge/-Original%20Repo-grey?logo=github" alt="Github"></a>
@@ -13,8 +8,6 @@
 ---
 
 ## Introduction
-
-This repository contains an **adaptation of Spatio-Temporal Graph Convolutional Networks (STGCN)** for traffic forecasting, originally proposed by **Bing Yu, Haoteng Yin, and Zhanxing Zhu** in their IJCAI 2018 paper:
 
 [Spatio-temporal Graph Convolutional Networks: A Deep Learning Framework for Traffic Forecasting](https://www.ijcai.org/proceedings/2018/0505.pdf)
 
@@ -33,70 +26,23 @@ This fork is based on the [original GitHub repo by VeritasYin](https://github.co
 
 ## Dataset
 
-The dataset used is **[PeMSD7](http://pems.dot.ca.gov/)**, collected from California state highway sensors.
-
-- `PeMSD7_V_{num_route}.csv` → Historical speed records
-- `PeMSD7_W_{num_route}.csv` → Weighted adjacency matrix
+a4e47dddd2ab9e97a14173bace3f0ecf
 
 > Large dataset files are **not included** in this repository. You may refer to the original repo or PeMS website to download the data.
 
 ---
 
-## Installation
-
-```bash
-# Clone this repository
-git clone https://github.com/suryakirank1/traffic-flow-prediction-using-STGCN.git
-cd traffic-flow-prediction-using-STGCN
-
-# Create virtual environment
-python -m venv venv
-source venv/Scripts/activate   # Windows
-# or
-source venv/bin/activate       # Linux/Mac
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install Git LFS to handle large model files
-git lfs install
-```
-
----
-
-## Usage
-
-### Training
-
-```bash
-python main.py --n_route 228 --graph dataset/PeMSD7_W_228.csv
-```
-
-### Testing / Evaluation
-
-```bash
-python main.py --mode test --model output/models/STGCN-9150
-```
-
-- Default config: 50 epochs, batch size 50, historical window of 12 steps, predicting next 9 steps.
-- Output model files are saved in `output/models/` and tracked via Git LFS.
-
----
-
-## Folder Structure
-
-```
-├── data_loader/
 ├── dataset/
 ├── figures/
 ├── models/
 ├── output/
-│   └── models/  # Trained models (tracked with Git LFS)
+│ └── models/ # Trained models (tracked with Git LFS)
 ├── utils/
 ├── main.py
 ├── README.md
 ├── LICENSE
-└── venv/        # Ignored by .gitignore
+└── venv/ # Ignored by .gitignore
+
 ```
 
 ---
@@ -115,7 +61,7 @@ python main.py --mode test --model output/models/STGCN-9150
 
 This repository follows the **BSD 2-Clause License** from the original repo. Please see the `LICENSE` file for details.
 
-````
+```
 
 ---
 
@@ -125,7 +71,7 @@ This repository follows the **BSD 2-Clause License** from the original repo. Ple
 
 ```bash
 git add README.md
-````
+```
 
 2. Commit your changes:
 
