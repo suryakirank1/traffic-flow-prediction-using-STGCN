@@ -2,8 +2,6 @@
 
 <p align="center">
     <a href="https://www.ijcai.org/proceedings/2018/0505.pdf"><img src="https://img.shields.io/badge/-Research%20Paper-grey?logo=read%20the%20docs&logoColor=green" alt="Paper"></a>
-    <a href="https://github.com/VeritasYin/STGCN_IJCAI-18"><img src="https://img.shields.io/badge/-Original%20Repo-grey?logo=github" alt="Github"></a>
-    <a href="https://github.com/suryakirank1/traffic-flow-prediction-using-STGCN"><img src="https://img.shields.io/badge/-This%20Fork-blue" alt="Fork"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
     <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
     <img src="https://img.shields.io/badge/TensorFlow-2.2.0-orange.svg" alt="TensorFlow">
