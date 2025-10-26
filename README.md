@@ -64,23 +64,3 @@ This repository follows the **BSD 2-Clause License** from the original repo. Ple
 ```
 
 ---
-
-### ✅ How to push this updated README
-
-1. Stage the README:
-
-```bash
-git add README.md
-```
-
-2. Commit your changes:
-
-```bash
-git commit -m "Update README: acknowledge original authors and add usage info"
-```
-
-3. Push to GitHub:
-
-```bash
-git push origin master
-```
