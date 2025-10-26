@@ -1,16 +1,21 @@
 # Core libraries
 numpy==1.19.5
-scipy==1.5.4
+scipy==1.4.1
 pandas==1.1.5
 
-# TensorFlow (STGCN original code uses TF 1.x)
-tensorflow==1.15.5
+# TensorFlow (STGCN original code uses TF 1.x - using TF 2.2.0 with compat mode)
+tensorflow==2.2.0
+protobuf<3.21
 
 # Optional: for visualization / debugging
 matplotlib==3.5.3
-tensorboard==1.15.0
+tensorboard==2.2.0
 
 # Git LFS is handled separately; not needed in pip
 
 # Optional: for command-line argument parsing (usually built-in)
 # argparse is built-in, so no need to install
+
+# Web API (Flask)
+flask==2.3.3
+flask-cors==4.0.0
