@@ -45,13 +45,14 @@ n, n_his, n_pred = args.n_route, args.n_his, args.n_pred
 Ks, Kt = args.ks, args.kt
 # blocks: settings of channel size in st_conv_blocks / bottleneck design
 blocks = [[1, 32, 64], [64, 32, 128]]
+dataset_dir = r"C:\Users\Surya Kiran K\Desktop\traffic flow prediction\STGCN_IJCAI-18\dataset\PeMSD7_Full"
 
 # Load wighted adjacency matrix W
 if args.graph == 'default':
-    W = weight_matrix(pjoin('./dataset', f'PeMSD7_W_{n}.csv'))
+    W = weight_matrix(pjoin(dataset_dir, f'PeMSD7_W_{n}.csv'))
 else:
     # load customized graph weight matrix
-    W = weight_matrix(pjoin('./dataset', args.graph))
+    W = weight_matrix(pjoin(dataset_dir, args.graph))
 
 # Calculate graph kernel
 L = scaled_laplacian(W)
@@ -62,9 +63,9 @@ tf.add_to_collection(name='graph_kernel', value=tf.cast(tf.constant(Lk), tf.floa
 # Data Preprocessing
 data_file = f'PeMSD7_V_{n}.csv'
 n_train, n_val, n_test = 34, 5, 5
-PeMS = data_gen(pjoin('./dataset', data_file), (n_train, n_val, n_test), n, n_his + n_pred)
+PeMS = data_gen(pjoin(dataset_dir, data_file), (n_train, n_val, n_test), n, n_his + n_pred)
 print(f'>> Loading dataset with Mean: {PeMS.mean:.2f}, STD: {PeMS.std:.2f}')
 
 if __name__ == '__main__':
-    model_train(PeMS, blocks, args)
+    #model_train(PeMS, blocks, args)
     model_test(PeMS, PeMS.get_len('test'), n_his, n_pred, args.inf_mode)
