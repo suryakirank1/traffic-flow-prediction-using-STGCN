@@ -1,0 +1,16 @@
+# Core libraries
+numpy==1.19.5
+scipy==1.5.4
+pandas==1.1.5
+
+# TensorFlow (STGCN original code uses TF 1.x)
+tensorflow==1.15.5
+
+# Optional: for visualization / debugging
+matplotlib==3.5.3
+tensorboard==1.15.0
+
+# Git LFS is handled separately; not needed in pip
+
+# Optional: for command-line argument parsing (usually built-in)
+# argparse is built-in, so no need to install
