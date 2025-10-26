@@ -321,7 +321,7 @@ This implementation is based on the research paper:
 
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) file for details.
+This project is licensed under the **BSD 2-Clause License** from the original repository. See [LICENSE](LICENSE) file for details.
 
 ---
 
