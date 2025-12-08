@@ -88,14 +88,18 @@ def model_test(inputs, batch_size, n_his, n_pred, inf_mode, load_path='./output/
     :param n_pred: int, the length of prediction.
     :param inf_mode: str, test mode - 'merge / multi-step test' or 'separate / single-step test'.
     :param load_path: str, the path of loaded model.
+    :return: dict containing performance metrics and optionally predictions.
     '''
+    import time
     start_time = time.time()
     model_path = tf.train.get_checkpoint_state(load_path).model_checkpoint_path
 
     test_graph = tf.Graph()
-
     with test_graph.as_default():
         saver = tf.train.import_meta_graph(pjoin(f'{model_path}.meta'))
+
+    metrics = []   # list of dicts for each step
+    summary = {}   # overall summary
 
     with tf.Session(graph=test_graph) as test_sess:
         saver.restore(test_sess, tf.train.latest_checkpoint(load_path))
@@ -103,23 +107,48 @@ def model_test(inputs, batch_size, n_his, n_pred, inf_mode, load_path='./output/
 
         pred = test_graph.get_collection('y_pred')
 
+        # Choose inference mode
         if inf_mode == 'sep':
-            # for inference mode 'sep', the type of step index is int.
             step_idx = n_pred - 1
             tmp_idx = [step_idx]
         elif inf_mode == 'merge':
-            # for inference mode 'merge', the type of step index is np.ndarray.
             step_idx = tmp_idx = np.arange(3, n_pred + 1, 3) - 1
         else:
             raise ValueError(f'ERROR: test mode "{inf_mode}" is not defined.')
 
+        # Load test data
         x_test, x_stats = inputs.get_data('test'), inputs.get_stats()
 
+        # Predict and evaluate
         y_test, len_test = multi_pred(test_sess, pred, x_test, batch_size, n_his, n_pred, step_idx)
         evl = evaluation(x_test[0:len_test, step_idx + n_his, :, :], y_test, x_stats)
 
+        # Log per time step
         for ix in tmp_idx:
             te = evl[ix - 2:ix + 1]
-            print(f'Time Step {ix + 1}: MAPE {te[0]:7.3%}; MAE  {te[1]:4.3f}; RMSE {te[2]:6.3f}.')
-        print(f'Model Test Time {time.time() - start_time:.3f}s')
-    print('Testing model finished!')
+            print(f'Time Step {ix + 1}: MAPE {te[0]:7.3%}; MAE {te[1]:4.3f}; RMSE {te[2]:6.3f}.')
+            metrics.append({
+                "time_step": int(ix + 1),
+                "MAPE": float(te[0] * 100),
+                "MAE": float(te[1]),
+                "RMSE": float(te[2])
+            })
+
+        duration = time.time() - start_time
+        print(f'Model Test Time {duration:.3f}s')
+        print('Testing model finished!')
+
+        summary = {
+            "average_MAPE": float(np.mean([m["MAPE"] for m in metrics])),
+            "average_MAE": float(np.mean([m["MAE"] for m in metrics])),
+            "average_RMSE": float(np.mean([m["RMSE"] for m in metrics])),
+            "test_time_sec": float(duration),
+            "steps_evaluated": len(metrics)
+        }
+
+    # Return both detailed and summary results
+    return {
+        "status": "success",
+        "summary": summary,
+        "detailed_metrics": metrics
+    }

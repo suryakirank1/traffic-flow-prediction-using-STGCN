@@ -1,226 +1,330 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import Dashboard from './components/Dashboard'
-import PredictionChart from './components/PredictionChart'
-import ModelStatus from './components/ModelStatus'
-import PredictionSummary from './components/PredictionSummary'
-import './App.css'
+import { useState, useEffect } from "react";
+import axios from "axios";
+import Dashboard from "./components/Dashboard";
+import PredictionChart from "./components/PredictionChart";
+import ModelStatus from "./components/ModelStatus";
+import PredictionSummary from "./components/PredictionSummary";
+import TrafficSignalDashboard from "./components/TrafficSignalDashboard";
+import "./App.css";
+import TrafficMap from "./components/TrafficMap";
 
 interface ModelInfo {
-  model_name: string
-  description: string
-  model_loaded: boolean
+  model_name: string;
+  description: string;
+  model_loaded: boolean;
   parameters: {
-    n_route: number
-    n_his: number
-    n_pred: number
-    batch_size: number
-  }
+    n_route: number;
+    n_his: number;
+    n_pred: number;
+    batch_size: number;
+  };
 }
-
 function App() {
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
-  const [predictions, setPredictions] = useState<number[][]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [scenario, setScenario] = useState<string | null>(null)
-  const [confidence, setConfidence] = useState<{score: number, level: string, explanation: string} | null>(null)
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+  const [predictions, setPredictions] = useState<number[][]>([]);
+
+  // Independent loading states
+  const [loadingPredict, setLoadingPredict] = useState(false);
+  const [loadingTest, setLoadingTest] = useState(false);
+
+  const [errorPredict, setErrorPredict] = useState<string | null>(null);
+  const [errorTest, setErrorTest] = useState<string | null>(null);
+
+  const [scenario, setScenario] = useState<string | null>(null);
+  const [confidence, setConfidence] = useState<{
+    score: number;
+    level: string;
+    explanation: string;
+  } | null>(null);
+  const [realInput, setRealInput] = useState<number[][]>([]);
+  const [realFuture, setRealFuture] = useState<number[][]>([]);
+  const [results, setResults] = useState<any>(null);
+  const [trafficSignal, setTrafficSignal] = useState<any>(null);
 
   useEffect(() => {
-    fetchModelInfo()
-  }, [])
+    fetchModelInfo();
+  }, []);
 
   const fetchModelInfo = async () => {
     try {
-      const response = await axios.get('/api/model/info')
-      setModelInfo(response.data)
+      const response = await axios.get("http://127.0.0.1:5000/api/model/info");
+      setModelInfo(response.data);
     } catch (err) {
-      console.error('Failed to fetch model info:', err)
+      console.error("Failed to fetch model info:", err);
     }
-  }
+  };
 
-  const handlePredict = async () => {
-    setLoading(true)
-    setError(null)
-    setPredictions([])
-    setScenario(null)
-    setConfidence(null)
-    
+  // ------------------------
+  // Run STGCN Test
+  // ------------------------
+  const runTest = async () => {
+    setLoadingTest(true);
+    setErrorTest(null);
+    setResults(null);
+
     try {
-      const response = await axios.post('/api/predict', {})
-      console.log('Prediction response:', response.data)
-      
+      const response = await axios.get("http://127.0.0.1:5000/api/run_test");
+      setResults(response.data);
+    } catch (err: any) {
+      const errorMsg =
+        err.response?.data?.error || err.message || "Failed to run test";
+      setErrorTest(errorMsg);
+      console.error("Run test error:", err);
+    } finally {
+      setLoadingTest(false);
+    }
+  };
+
+  // ------------------------
+  // Handle Prediction
+  // ------------------------
+  const handlePredict = async () => {
+    setLoadingPredict(true);
+    setErrorPredict(null);
+    setPredictions([]);
+    setScenario(null);
+    setConfidence(null);
+    setTrafficSignal(null); // important
+
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:5000/api/predict",
+        {}
+      );
+
       if (response.data.predictions) {
-        setPredictions(response.data.predictions)
-        setScenario(response.data.scenario || null)
-        setConfidence(response.data.confidence || null)
+        setPredictions(response.data.predictions);
+        setRealInput(response.data.real_input || []);
+        setRealFuture(response.data.real_future || []);
+        setScenario(response.data.scenario || null);
+        setConfidence(response.data.confidence || null);
       } else {
-        setError('Invalid response format')
+        setErrorPredict("Invalid response format");
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to generate predictions'
-      setError(errorMsg)
-      console.error('Prediction error:', err)
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to generate predictions";
+      setErrorPredict(errorMsg);
+      console.error("Prediction error:", err);
     } finally {
-      setLoading(false)
+      setLoadingPredict(false);
     }
-  }
+  };
 
-  try {
-    return (
-      <div className="app">
-        <header className="app-header">
-          <div className="header-content">
-            <h1>STGCN Traffic Flow Prediction</h1>
-            <p>Spatio-temporal Graph Convolutional Networks for Traffic Forecasting</p>
-          </div>
-        </header>
+  // ------------------------
+  // Traffic Signal Recommendation
+  // ------------------------
+  const handleTrafficSignal = async () => {
+    try {
+      const response = await axios.get(
+        "http://127.0.0.1:5000/api/traffic_signal"
+      );
+      setTrafficSignal(response.data);
+    } catch (err) {
+      console.error("Traffic signal API error:", err);
+    }
+  };
 
-        <main className="app-main">
-          <div className="container">
-            {/* Predict Button at the Top */}
-            <div style={{ 
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              borderRadius: '20px', 
-              padding: '2.5rem', 
-              marginBottom: '2rem',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.3)'
-            }}>
-              <h2 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '1rem', fontSize: '1.8rem', fontWeight: '700', letterSpacing: '-0.5px' }}>
-                Get Traffic Predictions
-              </h2>
-              <p style={{ color: '#666', marginBottom: '1.5rem', fontSize: '1.05rem', lineHeight: '1.6' }}>
-                Click the button below to predict traffic flow for the next 45 minutes across 228 routes.
-              </p>
-              {scenario && (
-                <div style={{ 
-                  padding: '1rem 1.25rem', 
-                  background: 'rgba(102, 126, 234, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: '12px',
-                  marginBottom: '1rem',
-                  border: '1px solid rgba(102, 126, 234, 0.2)',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
-                }}>
-                  <strong style={{ color: '#667eea', fontSize: '0.9rem' }}>Simulation Scenario: </strong>
-                  <span style={{ color: '#2c3e50', fontWeight: '600' }}>{scenario}</span>
-                  <p style={{ 
-                    margin: '0.5rem 0 0 0', 
-                    fontSize: '0.85rem', 
-                    color: '#666',
-                    fontStyle: 'italic'
-                  }}>
-                    (This shows the input traffic condition that was used to generate the prediction)
-                  </p>
-                </div>
-              )}
-              {confidence && (
-                <div style={{ 
-                  padding: '1rem 1.25rem', 
-                  background: confidence.score >= 90 ? 'rgba(46, 125, 50, 0.1)' : 'rgba(255, 183, 77, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: '12px',
-                  marginBottom: '1rem',
-                  border: `1px solid ${confidence.score >= 90 ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 183, 77, 0.2)'}`,
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
-                }}>
-                  <strong style={{ color: confidence.score >= 90 ? '#2e7d32' : '#f57c00', fontSize: '0.9rem' }}>Model Confidence: </strong>
-                  <span style={{ 
-                    color: '#2c3e50',
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem'
-                  }}>
-                    {confidence.score}% ({confidence.level})
-                  </span>
-                  <p style={{ 
-                    margin: '0.5rem 0 0 0', 
-                    fontSize: '0.85rem', 
-                    color: '#666'
-                  }}>
-                    {confidence.explanation}
-                  </p>
-                </div>
-              )}
-              <button
-                onClick={handlePredict}
-                disabled={loading}
-                style={{
-                  background: loading ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '1.25rem 2.5rem',
-                  fontSize: '0.9rem',
-                  borderRadius: '12px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontWeight: '700',
-                  transition: 'all 0.3s ease',
-                  minWidth: '250px',
-                  boxShadow: loading ? 'none' : '0 10px 30px rgba(102, 126, 234, 0.4)',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase'
-                }}
-                onMouseOver={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = 'translateY(-3px)'
-                    e.currentTarget.style.boxShadow = '0 15px 40px rgba(102, 126, 234, 0.5)'
-                  }
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = loading ? 'none' : '0 10px 30px rgba(102, 126, 234, 0.4)'
-                }}
-              >
-                {loading ? 'Predicting...' : 'Generate Predictions'}
-              </button>
-              {error && (
-                <div style={{ 
-                  marginTop: '1rem', 
-                  padding: '1rem', 
-                  background: '#fee', 
-                  borderRadius: '8px',
-                  color: '#c33'
-                }}>
-                  {error}
-                </div>
-              )}
-            </div>
-
-            {/* Human Language Summary */}
-            {predictions && predictions.length > 0 && (
-              <PredictionSummary predictions={predictions} />
-            )}
-
-            {/* Prediction Chart */}
-            {predictions && predictions.length > 0 && (
-              <PredictionChart predictions={predictions} />
-            )}
-
-            {/* Model Information */}
-            {modelInfo && <ModelStatus modelInfo={modelInfo} />}
-
-
-          </div>
-        </main>
-
-        <footer className="app-footer">
-          <p>© 2024 STGCN Traffic Prediction System</p>
-        </footer>
-      </div>
-    )
-  } catch (err) {
-    console.error('App render error:', err)
-    return (
-      <div className="app">
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          <h1>Error occurred</h1>
-          <p>{err instanceof Error ? err.message : 'Unknown error'}</p>
-          <button onClick={() => window.location.reload()}>Reload</button>
+  // ------------------------
+  // Render Buttons with Styling
+  // ------------------------
+  return (
+    <div className="app">
+      <header className="app-header">
+        <div className="header-content">
+          <h1>STGCN Traffic Flow Prediction</h1>
+          <p>
+            Spatio-temporal Graph Convolutional Networks for Traffic Forecasting
+          </p>
         </div>
-      </div>
-    )
-  }
+      </header>
+
+      <main className="app-main">
+        <div
+          className="container"
+          style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
+        >
+          {/* Buttons Section */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              gap: "2rem",
+              justifyContent: "center",
+            }}
+          >
+            {/* Predict Button */}
+            <button
+              onClick={handlePredict}
+              disabled={loadingPredict}
+              style={{
+                background: loadingPredict
+                  ? "#ccc"
+                  : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                border: "none",
+                padding: "1rem 2rem",
+                fontSize: "1rem",
+                borderRadius: "12px",
+                cursor: loadingPredict ? "not-allowed" : "pointer",
+                boxShadow: loadingPredict
+                  ? "none"
+                  : "0 8px 20px rgba(102, 126, 234, 0.4)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseOver={(e) => {
+                if (!loadingPredict) {
+                  e.currentTarget.style.transform = "translateY(-3px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 12px 30px rgba(102,126,234,0.5)";
+                }
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = loadingPredict
+                  ? "none"
+                  : "0 8px 20px rgba(102, 126, 234, 0.4)";
+              }}
+            >
+              {loadingPredict ? "Predicting..." : "Generate Predictions"}
+            </button>
+
+            {/* Run Test Button */}
+            <button
+              onClick={runTest}
+              disabled={loadingTest}
+              style={{
+                background: loadingTest
+                  ? "#ccc"
+                  : "linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%)",
+                color: "white",
+                border: "none",
+                padding: "1rem 2rem",
+                fontSize: "1rem",
+                borderRadius: "12px",
+                cursor: loadingTest ? "not-allowed" : "pointer",
+                boxShadow: loadingTest
+                  ? "none"
+                  : "0 8px 20px rgba(255, 126, 95, 0.4)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseOver={(e) => {
+                if (!loadingTest) {
+                  e.currentTarget.style.transform = "translateY(-3px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 12px 30px rgba(255,126,95,0.5)";
+                }
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = loadingTest
+                  ? "none"
+                  : "0 8px 20px rgba(255,126,95,0.4)";
+              }}
+            >
+              {loadingTest ? "Running..." : "Run Model Test"}
+            </button>
+            <button
+              onClick={handleTrafficSignal}
+              style={{
+                background: "linear-gradient(135deg, #34d399 0%, #059669 100%)",
+                color: "white",
+                border: "none",
+                padding: "1rem 2rem",
+                fontSize: "1rem",
+                borderRadius: "12px",
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(52, 211, 153, 0.4)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = "translateY(-3px)";
+                e.currentTarget.style.boxShadow =
+                  "0 12px 30px rgba(52,211,153,0.5)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 8px 20px rgba(52, 211, 153, 0.4)";
+              }}
+            >
+              Traffic Signal Recommendation
+            </button>
+          </div>
+
+          <TrafficSignalDashboard />
+
+          {/* Leaflet Map Visualization */}
+          {trafficSignal && (
+            <div>
+              <h2>Traffic Sensor Map</h2>
+              <TrafficMap trafficSignal={trafficSignal} />
+            </div>
+          )}
+
+          {/* Test Results */}
+          {results && (
+            <pre
+              style={{
+                textAlign: "left",
+                background: "#f0f0f0",
+                padding: "1rem",
+                borderRadius: "8px",
+              }}
+            >
+              {JSON.stringify(results, null, 2)}
+            </pre>
+          )}
+          {errorTest && <p className="text-red-500">{errorTest}</p>}
+
+          {/* Prediction Chart */}
+          {predictions && predictions.length > 0 && (
+            <PredictionChart
+              realInput={realInput}
+              realFuture={realFuture}
+              predictions={predictions}
+            />
+          )}
+
+          {/* Prediction Summary */}
+          {predictions && predictions.length > 0 && (
+            <PredictionSummary predictions={predictions} />
+          )}
+
+          {/* Traffic Signal Recommendation */}
+          {trafficSignal && (
+            <div
+              style={{
+                background: "#e8fff3",
+                padding: "1rem",
+                borderRadius: "8px",
+                border: "1px solid #34d399",
+                marginTop: "20px",
+                width: "100%",
+                fontFamily: "monospace",
+              }}
+            >
+              <h2 style={{ marginBottom: "10px" }}>
+                Traffic Signal Recommendation
+              </h2>
+              <pre style={{ whiteSpace: "pre-wrap" }}>
+                {JSON.stringify(trafficSignal, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* Model Info */}
+          {modelInfo && <ModelStatus modelInfo={modelInfo} />}
+        </div>
+      </main>
+
+      <footer className="app-footer">
+        <p>© 2024 STGCN Traffic Prediction System</p>
+      </footer>
+    </div>
+  );
 }
 
-export default App
+export default App;

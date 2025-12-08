@@ -1,99 +1,130 @@
-import './PredictionSummary.css'
-
 interface PredictionSummaryProps {
-  predictions: number[][]
+  predictions: number[][];
 }
 
 function PredictionSummary({ predictions }: PredictionSummaryProps) {
-  if (!predictions || predictions.length === 0) {
-    return null
-  }
+  if (!predictions || predictions.length === 0) return null;
 
-  // Extract all values from predictions
-  const allValues: number[] = []
-  predictions.forEach(timestep => {
-    if (Array.isArray(timestep)) {
-      timestep.forEach((routeData: any) => {
-        if (Array.isArray(routeData)) {
-          routeData.forEach((value: any) => {
-            const numValue = typeof value === 'number' ? value : parseFloat(value)
-            if (!isNaN(numValue)) {
-              allValues.push(numValue)
-            }
-          })
-        }
-      })
-    }
-  })
+  // Flatten safely
+  const allValues: number[] = predictions
+    .flat()
+    .map((v) => parseFloat(v as any))
+    .filter((v) => !isNaN(v));
 
-  if (allValues.length === 0) {
-    return null
-  }
+  const avgSpeed =
+    allValues.length > 0
+      ? allValues.reduce((a, b) => a + b, 0) / allValues.length
+      : 0;
 
-  const sorted = [...allValues].sort((a, b) => a - b)
-  const min = sorted[0]
-  const max = sorted[sorted.length - 1]
-  const avg = allValues.reduce((a, b) => a + b, 0) / allValues.length
-
-  // Determine traffic condition
-  const getTrafficCondition = (avgFlow: number) => {
-    if (avgFlow < -1) return { level: 'Very Light', color: '#48bb78' }
-    if (avgFlow < 0) return { level: 'Light', color: '#38a169' }
-    if (avgFlow < 0.5) return { level: 'Moderate', color: '#ed8936' }
-    if (avgFlow < 1) return { level: 'Heavy', color: '#f56565' }
-    return { level: 'Very Heavy', color: '#e53e3e' }
-  }
-
-  const trafficCondition = getTrafficCondition(avg)
+  const trafficCondition = (() => {
+    if (avgSpeed <= 0)
+      return { level: "Unknown", color: "#718096", bg: "#e2e8f0" };
+    if (avgSpeed < 20)
+      return { level: "Heavy", color: "#f56565", bg: "#ffe5e5" };
+    if (avgSpeed < 40)
+      return { level: "Moderate", color: "#ed8936", bg: "#fff4e1" };
+    return { level: "Light", color: "#48bb78", bg: "#e6fffa" };
+  })();
 
   return (
-    <div className="prediction-summary">
-      <div className="summary-card">
-        <h2>What This Means for You</h2>
-        
-        <div className="traffic-status" style={{ borderLeftColor: trafficCondition.color }}>
-          <div className="status-header">
-            <h3>Expected Traffic: {trafficCondition.level}</h3>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        margin: "2rem 0",
+      }}
+    >
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: "16px",
+          padding: "2rem",
+          width: "100%",
+          maxWidth: "700px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+          fontFamily: "Inter, sans-serif",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "1rem",
+            borderRadius: "12px",
+            background: `linear-gradient(135deg, ${trafficCondition.bg}, #fefefe)`,
+            borderLeft: `6px solid ${trafficCondition.color}`,
+            marginBottom: "1.5rem",
+            boxShadow: "0 5px 15px rgba(0,0,0,0.05)",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <h2 style={{ margin: 0, color: "#2d3748" }}>
+              Traffic Prediction Summary
+            </h2>
+            <p
+              style={{
+                margin: "0.25rem 0 0",
+                fontWeight: 600,
+                color: trafficCondition.color,
+              }}
+            >
+              Expected Traffic: {trafficCondition.level}
+            </p>
           </div>
-          <p className="status-description">
-            Over the next 45 minutes, traffic across 228 major routes is expected to be <strong>{trafficCondition.level.toLowerCase()}</strong>.
-          </p>
+          <div
+            style={{
+              backgroundColor: trafficCondition.color,
+              color: "#fff",
+              fontWeight: 700,
+              padding: "0.5rem 1rem",
+              borderRadius: "12px",
+              fontSize: "0.9rem",
+            }}
+          >
+            {avgSpeed.toFixed(1)} km/h
+          </div>
         </div>
 
-        <div className="summary-points">
-          <div className="point">
-            <div>
-              <strong>Next 45 Minutes</strong>
-              <p>The system predicts traffic flow for the next 45 minutes, broken down into 5-minute intervals.</p>
-            </div>
-          </div>
-          
-          <div className="point">
-            <div>
-              <strong>228 Routes Monitored</strong>
-              <p>This covers 228 major traffic routes in the area, giving you a comprehensive view of traffic conditions.</p>
-            </div>
-          </div>
+        <p style={{ color: "#4a5568", marginBottom: "1rem", lineHeight: 1.6 }}>
+          Over the next 45 minutes, traffic across 228 major routes is expected
+          to be{" "}
+          <strong style={{ color: trafficCondition.color }}>
+            {trafficCondition.level.toLowerCase()}
+          </strong>
+          .
+        </p>
 
-          <div className="point">
-            <div>
-              <strong>Data-Driven Predictions</strong>
-              <p>Predictions are based on historical traffic patterns and real-time data analysis.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="best-time">
-          <h4>Planning Your Trip?</h4>
-          <p>
-            Current conditions suggest {trafficCondition.level === 'Light' || trafficCondition.level === 'Very Light' 
-              ? 'it\'s a great time to travel!' 
-              : 'you might want to consider alternative times or routes.'}
-          </p>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+          }}
+        >
+          {trafficCondition.level === "Light" && (
+            <p style={{ color: "#38a169", fontWeight: 500 }}>
+              ✅ Great time to travel! Roads are mostly clear.
+            </p>
+          )}
+          {trafficCondition.level === "Moderate" && (
+            <p style={{ color: "#ed8936", fontWeight: 500 }}>
+              ⚠️ Traffic is moderate. Consider alternate routes if possible.
+            </p>
+          )}
+          {trafficCondition.level === "Heavy" && (
+            <p style={{ color: "#f56565", fontWeight: 500 }}>
+              ⛔ Heavy traffic expected. Plan ahead or delay your trip.
+            </p>
+          )}
+          {trafficCondition.level === "Unknown" && (
+            <p style={{ color: "#718096", fontWeight: 500 }}>
+              ℹ️ Data unavailable for current prediction.
+            </p>
+          )}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default PredictionSummary
+export default PredictionSummary;
