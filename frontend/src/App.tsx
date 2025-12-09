@@ -4,7 +4,7 @@ import Dashboard from "./components/Dashboard";
 import PredictionChart from "./components/PredictionChart";
 import ModelStatus from "./components/ModelStatus";
 import PredictionSummary from "./components/PredictionSummary";
-import TrafficSignalDashboard from "./components/TrafficSignalDashboard";
+
 import "./App.css";
 import TrafficMap from "./components/TrafficMap";
 
@@ -78,38 +78,58 @@ function App() {
   // ------------------------
   // Handle Prediction
   // ------------------------
+  // Inside App.tsx
   const handlePredict = async () => {
+    console.log("handlePredict called");
     setLoadingPredict(true);
     setErrorPredict(null);
     setPredictions([]);
     setScenario(null);
     setConfidence(null);
-    setTrafficSignal(null); // important
+    setTrafficSignal(null);
 
     try {
+      console.log("Sending request to backend...");
       const response = await axios.post(
         "http://127.0.0.1:5000/api/predict",
         {}
       );
+      console.log("Raw response:", response);
+      console.log("Response data:", response.data);
 
+      // Check if 'predictions' exists
       if (response.data.predictions) {
+        console.log("Predictions found:", response.data.predictions);
+
         setPredictions(response.data.predictions);
         setRealInput(response.data.real_input || []);
         setRealFuture(response.data.real_future || []);
         setScenario(response.data.scenario || null);
         setConfidence(response.data.confidence || null);
+      } else if (response.data.results) {
+        // Some backends use 'results' instead of 'predictions'
+        console.warn(
+          "Backend returned 'results' instead of 'predictions'",
+          response.data.results
+        );
+        setPredictions(response.data.results);
       } else {
-        setErrorPredict("Invalid response format");
+        console.error("Invalid response format:", response.data);
+        setErrorPredict("Invalid response format from backend");
       }
     } catch (err: any) {
+      console.error("Prediction error caught:", err);
+
+      // Axios network or backend error
       const errorMsg =
         err.response?.data?.error ||
         err.message ||
         "Failed to generate predictions";
+
       setErrorPredict(errorMsg);
-      console.error("Prediction error:", err);
     } finally {
       setLoadingPredict(false);
+      console.log("handlePredict finished, loadingPredict set to false");
     }
   };
 
@@ -254,8 +274,6 @@ function App() {
             </button>
           </div>
 
-          <TrafficSignalDashboard />
-
           {/* Leaflet Map Visualization */}
           {trafficSignal && (
             <div>
@@ -265,19 +283,6 @@ function App() {
           )}
 
           {/* Test Results */}
-          {results && (
-            <pre
-              style={{
-                textAlign: "left",
-                background: "#f0f0f0",
-                padding: "1rem",
-                borderRadius: "8px",
-              }}
-            >
-              {JSON.stringify(results, null, 2)}
-            </pre>
-          )}
-          {errorTest && <p className="text-red-500">{errorTest}</p>}
 
           {/* Prediction Chart */}
           {predictions && predictions.length > 0 && (
@@ -294,26 +299,6 @@ function App() {
           )}
 
           {/* Traffic Signal Recommendation */}
-          {trafficSignal && (
-            <div
-              style={{
-                background: "#e8fff3",
-                padding: "1rem",
-                borderRadius: "8px",
-                border: "1px solid #34d399",
-                marginTop: "20px",
-                width: "100%",
-                fontFamily: "monospace",
-              }}
-            >
-              <h2 style={{ marginBottom: "10px" }}>
-                Traffic Signal Recommendation
-              </h2>
-              <pre style={{ whiteSpace: "pre-wrap" }}>
-                {JSON.stringify(trafficSignal, null, 2)}
-              </pre>
-            </div>
-          )}
 
           {/* Model Info */}
           {modelInfo && <ModelStatus modelInfo={modelInfo} />}
@@ -321,7 +306,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>© 2024 STGCN Traffic Prediction System</p>
+        <p>© 2025 STGCN Traffic Prediction System</p>
       </footer>
     </div>
   );
